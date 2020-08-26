@@ -34,8 +34,9 @@
 	// Navigation & controls
 	UIToolbar *_toolbar;
 	NSTimer *_controlVisibilityTimer;
-	UIBarButtonItem *_previousButton, *_nextButton, *_actionButton, *_doneButton;
+	UIBarButtonItem *_previousButton, *_nextButton, *_actionButton, *_doneButton, *_trashButton;
     MBProgressHUD *_progressHUD;
+    UIActionSheet *_actionsSheet;
     
     // Grid
     MWGridViewController *_gridController;
@@ -44,6 +45,7 @@
     
     // Appearance
     BOOL _previousNavBarHidden;
+    BOOL _previousNavToolbarHidden;
     BOOL _previousNavBarTranslucent;
     UIBarStyle _previousNavBarStyle;
     UIStatusBarStyle _previousStatusBarStyle;
@@ -73,6 +75,9 @@
     CGPoint _currentGridContentOffset;
     
 }
+
+
+@property (nonatomic) UIScrollView *pagingScrollView;
 
 // Properties
 @property (nonatomic) UIActivityViewController *activityViewController;

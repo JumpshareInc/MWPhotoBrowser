@@ -17,6 +17,9 @@
 
     BOOL _loadingInProgress;
     id <SDWebImageOperation> _webImageOperation;
+        NSURL *_placeHolderURL;
+    UIImage *_noPreviewImage;
+
     PHImageRequestID _assetRequestID;
     PHImageRequestID _assetVideoRequestID;
         
@@ -43,6 +46,14 @@
 
 + (MWPhoto *)photoWithURL:(NSURL *)url {
     return [[MWPhoto alloc] initWithURL:url];
+}
+
++ (MWPhoto *)photoWithURL:(NSURL *)url placeHolderImage:(UIImage *)placeHolder{
+    return [[MWPhoto alloc] initWithURL:url placeHolderImage:placeHolder];
+}
+
++ (MWPhoto *)photoWithURL:(NSURL *)url placeHolderURL:(NSURL *)placeHolderURL noPreviewImage:(UIImage *)noPreviewImage {
+    return [[MWPhoto alloc] initWithURL:url placeHolderURL:placeHolderURL noPreviewImage:noPreviewImage];
 }
 
 + (MWPhoto *)photoWithAsset:(PHAsset *)asset targetSize:(CGSize)targetSize {
@@ -75,6 +86,23 @@
     if ((self = [super init])) {
         self.photoURL = url;
         [self setup];
+    }
+    return self;
+}
+
+- (id)initWithURL:(NSURL *)url placeHolderImage:(UIImage *)placeholder {
+    if ((self = [super init])) {
+        _image = placeholder;
+        _photoURL = [url copy];
+    }
+    return self;
+}
+
+- (id)initWithURL:(NSURL *)url placeHolderURL:(NSURL *)placeHolderURL noPreviewImage:(UIImage *)noPreviewImage {
+    if ((self = [super init])) {
+        _noPreviewImage = noPreviewImage;
+        _placeHolderURL = placeHolderURL;
+        _photoURL = [url copy];
     }
     return self;
 }
@@ -203,7 +231,24 @@
     } else {
         
         // Image is empty
-        [self imageLoadingComplete];
+                    // Load async from web (using SDWebImage)
+            @try {
+                if (!self.underlyingImage) {
+                    
+                    if (_photoURL == nil || _photoURL.absoluteString.length == 0) {
+                        self.underlyingImage = _noPreviewImage;
+                        [self imageLoadingComplete];
+                        
+                        return;
+                    }
+                    [self imageLoadingComplete];
+             }
+            } @catch (NSException *e) {
+                MWLog(@"Photo from web: %@", e);
+                _webImageOperation = nil;
+                [self imageLoadingComplete];
+            }
+        
         
     }
 }

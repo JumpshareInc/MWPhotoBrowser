@@ -23,6 +23,7 @@
 
 + (MWPhoto *)photoWithImage:(UIImage *)image;
 + (MWPhoto *)photoWithURL:(NSURL *)url;
++ (MWPhoto *)photoWithURL:(NSURL *)url placeHolderURL:(NSURL *)placeHolderURL noPreviewImage:(UIImage *)noPreviewImage;
 + (MWPhoto *)photoWithAsset:(PHAsset *)asset targetSize:(CGSize)targetSize;
 + (MWPhoto *)videoWithURL:(NSURL *)url; // Initialise video with no poster image
 

@@ -144,7 +144,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if (!_enableGrid) _startOnGrid = NO;
 	
 	// View
-	self.view.backgroundColor = [UIColor blackColor];
+	self.view.backgroundColor = [UIColor whiteColor];
     self.view.clipsToBounds = YES;
 	
 	// Setup paging scrolling view
@@ -155,7 +155,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	_pagingScrollView.delegate = self;
 	_pagingScrollView.showsHorizontalScrollIndicator = NO;
 	_pagingScrollView.showsVerticalScrollIndicator = NO;
-	_pagingScrollView.backgroundColor = [UIColor blackColor];
+	_pagingScrollView.backgroundColor = [UIColor colorWithRed:0xED/255.f green:0xED/255.f blue:0xED/255.f alpha:1.0];
     _pagingScrollView.contentSize = [self contentSizeForPagingScrollView];
 	[self.view addSubview:_pagingScrollView];
 	
@@ -178,6 +178,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     }
     if (self.displayActionButton) {
         _actionButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAction target:self action:@selector(actionButtonPressed:)];
+    }
+    if (self.displayTrashButton) {
+        _trashButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(trashButtonPressed:)];
     }
     
     // Update
@@ -244,6 +247,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if (_enableGrid) {
         hasItems = YES;
         [items addObject:[[UIBarButtonItem alloc] initWithImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/UIBarButtonItemGrid" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] style:UIBarButtonItemStylePlain target:self action:@selector(showGridAnimated)]];
+    } else if (_trashButton) {
+        hasItems = YES;
+        [items addObject:_trashButton];
     } else {
         [items addObject:fixedSpace];
     }
@@ -1043,6 +1049,10 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 }
 
 #pragma mark - UIScrollView Delegate
+- (void) allowScrolling:(BOOL) enabled
+{
+    self.pagingScrollView.scrollEnabled = enabled;
+}
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
 	
@@ -1067,7 +1077,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
 	// Hide controls when dragging begins
-	[self setControlsHidden:YES animated:YES permanent:NO];
+	//[self setControlsHidden:YES animated:YES permanent:NO];
 }
 
 - (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
@@ -1307,7 +1317,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 - (void)showGrid:(BOOL)animated {
 
-    if (_gridController) return;
+    //if (_gridController) return;
     
     // Clear video
     [self clearCurrentVideo];
@@ -1317,8 +1327,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     _gridController.initialContentOffset = _currentGridContentOffset;
     _gridController.browser = self;
     _gridController.selectionMode = _displaySelectionButtons;
+    _gridController.navBarFrame = self.navBarFrame;
     _gridController.view.frame = self.view.bounds;
-    _gridController.view.frame = CGRectOffset(_gridController.view.frame, 0, (self.startOnGrid ? -1 : 1) * self.view.bounds.size.height);
+    _gridController.view.frame = CGRectOffset(_gridController.view.frame, 0, self.view.bounds.size.height);
 
     // Stop specific layout being triggered
     _skipNextPagingScrollViewPositioning = YES;
@@ -1420,12 +1431,17 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
             // Non-view controller based
             [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:animated ? UIStatusBarAnimationSlide : UIStatusBarAnimationNone];
             
+            [self setBackgroundColorToMatchStatusBarHidden:hidden];
+                
         } else {
             
             // View controller based so animate away
             _statusBarShouldBeHidden = hidden;
             [UIView animateWithDuration:animationDuration animations:^(void) {
                 [self setNeedsStatusBarAppearanceUpdate];
+                    
+                [self setBackgroundColorToMatchStatusBarHidden:hidden];
+                    
             } completion:^(BOOL finished) {}];
             
         }
@@ -1495,6 +1511,28 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	
 }
 
+- (void)setBackgroundColorToMatchStatusBarHidden:(BOOL)hidden
+{
+    UIColor *backgroundColor;
+    
+    if (hidden) {
+        backgroundColor = [UIColor blackColor];
+    }
+    else {
+        backgroundColor = [UIColor whiteColor];
+    }
+
+    self.view.backgroundColor = backgroundColor;
+    _pagingScrollView.backgroundColor = backgroundColor;
+    for (MWZoomingScrollView *page in _visiblePages) {
+        page.backgroundColor = backgroundColor;
+    }
+    for (MWZoomingScrollView *page in _recycledPages) {
+        page.backgroundColor = backgroundColor;
+    }
+
+}
+
 - (BOOL)prefersStatusBarHidden {
     if (!_leaveStatusBarAlone) {
         return _statusBarShouldBeHidden;
@@ -1556,17 +1594,6 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 - (void)doneButtonPressed:(id)sender {
     // Only if we're modal and there's a done button
     if (_doneButton) {
-        // See if we actually just want to show/hide grid
-        if (self.enableGrid) {
-            if (self.startOnGrid && !_gridController) {
-                [self showGrid:YES];
-                return;
-            } else if (!self.startOnGrid && _gridController) {
-                [self hideGrid];
-                return;
-            }
-        }
-        // Dismiss view controller
         if ([_delegate respondsToSelector:@selector(photoBrowserDidFinishModalPresentation:)]) {
             // Call delegate method and let them dismiss us
             [_delegate photoBrowserDidFinishModalPresentation:self];
@@ -1627,7 +1654,37 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         [self setControlsHidden:NO animated:YES permanent:YES];
 
     }
-    
+}
+
+- (void)trashButtonPressed:(id)sender {
+    if (_actionsSheet) {
+        
+        // Dismiss
+        [_actionsSheet dismissWithClickedButtonIndex:_actionsSheet.cancelButtonIndex animated:YES];
+        
+    } else {
+        
+        // Only react when image has loaded
+        id <MWPhoto> photo = [self photoAtIndex:_currentPageIndex];
+        if ([self numberOfPhotos] > 0 && [photo underlyingImage]) {
+            
+            // If they have defined a delegate method then just message them
+            if ([self.delegate respondsToSelector:@selector(photoBrowser:trashButtonPressedForPhotoAtIndex:)]) {
+                
+                // Let delegate handle things
+                [self.delegate photoBrowser:self trashButtonPressedForPhotoAtIndex:_currentPageIndex];
+                
+                [self reloadData];
+                
+                if (_photoCount == 0) {
+                    [self.navigationController popViewControllerAnimated:YES];
+                }
+                
+            }
+            
+        }
+        
+    }
 }
 
 #pragma mark - Action Progress

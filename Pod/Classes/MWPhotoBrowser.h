@@ -32,6 +32,7 @@
 - (NSString *)photoBrowser:(MWPhotoBrowser *)photoBrowser titleForPhotoAtIndex:(NSUInteger)index;
 - (void)photoBrowser:(MWPhotoBrowser *)photoBrowser didDisplayPhotoAtIndex:(NSUInteger)index;
 - (void)photoBrowser:(MWPhotoBrowser *)photoBrowser actionButtonPressedForPhotoAtIndex:(NSUInteger)index;
+- (void)photoBrowser:(MWPhotoBrowser *)photoBrowser trashButtonPressedForPhotoAtIndex:(NSUInteger)index;
 - (BOOL)photoBrowser:(MWPhotoBrowser *)photoBrowser isPhotoSelectedAtIndex:(NSUInteger)index;
 - (void)photoBrowser:(MWPhotoBrowser *)photoBrowser photoAtIndex:(NSUInteger)index selectedChanged:(BOOL)selected;
 - (void)photoBrowserDidFinishModalPresentation:(MWPhotoBrowser *)photoBrowser;
@@ -40,10 +41,12 @@
 
 @interface MWPhotoBrowser : UIViewController <UIScrollViewDelegate, UIActionSheetDelegate>
 
+@property (assign) CGRect navBarFrame;
 @property (nonatomic, weak) IBOutlet id<MWPhotoBrowserDelegate> delegate;
 @property (nonatomic) BOOL zoomPhotosToFill;
 @property (nonatomic) BOOL displayNavArrows;
 @property (nonatomic) BOOL displayActionButton;
+@property (nonatomic) BOOL displayTrashButton;
 @property (nonatomic) BOOL displaySelectionButtons;
 @property (nonatomic) BOOL alwaysShowControls;
 @property (nonatomic) BOOL enableGrid;
@@ -71,5 +74,8 @@
 // Navigation
 - (void)showNextPhotoAnimated:(BOOL)animated;
 - (void)showPreviousPhotoAnimated:(BOOL)animated;
+
+- (void) allowScrolling:(BOOL) enabled;
+- (void) setBackgroundColorToMatchStatusBarHidden:(BOOL) hidden;
 
 @end
